@@ -17,10 +17,7 @@ import gtna.io.DataWriter;
 import gtna.metrics.Metric;
 import gtna.networks.Network;
 import gtna.util.Distribution;
-import gtna.util.parameter.BooleanParameter;
-import gtna.util.parameter.IntParameter;
-import gtna.util.parameter.Parameter;
-import gtna.util.parameter.StringParameter;
+import gtna.util.parameter.*;
 import paymentrouting.datasets.TransactionList;
 import treeembedding.credit.CreditLinks;
 import treeembedding.credit.Transaction;
@@ -55,27 +52,40 @@ public class RoutePayment extends Metric{
 	protected double success; //fraction of payments successful
 	protected double successFirst; //fraction of payments successful in first try
 	protected double[] succTime; //fraction of successful payments over time 
-	
-	
-	public RoutePayment(PathSelection ps, int trials, boolean up) {
-		this(ps,trials,up,Integer.MAX_VALUE); 
+
+
+	public RoutePayment(PathSelection ps, int trials, boolean up, double p) {
+		this(ps,trials,up,Integer.MAX_VALUE, p);
 	}
-	
-    /**
-     * basic constructor
-     * @param ps
-     * @param trials
-     * @param up
-     * @param epoch
-     */
+	public RoutePayment(PathSelection ps, int trials, boolean up) {
+		this(ps,trials,up,Integer.MAX_VALUE);
+	}
+
+	/**
+	 * basic constructor
+	 * @param ps
+	 * @param trials
+	 * @param up
+	 * @param epoch
+	 */
 	public RoutePayment(PathSelection ps, int trials, boolean up, int epoch) {
 		super("ROUTE_PAYMENT", new Parameter[]{new StringParameter("SELECTION", ps.getName()), new IntParameter("TRIALS", trials),
-				new BooleanParameter("UPDATE", up), new StringParameter("DISTANCE", ps.getDist().name), 
+				new BooleanParameter("UPDATE", up), new StringParameter("DISTANCE", ps.getDist().name),
 				new IntParameter("EPOCH", epoch)});
-		this.trials = trials;		
+		this.trials = trials;
 		this.update = up;
-		this.select = ps; 
-		this.recompute_epoch = epoch; 
+		this.select = ps;
+		this.recompute_epoch = epoch;
+	}
+
+	public RoutePayment(PathSelection ps, int trials, boolean up, int epoch, double p) {
+		super("ROUTE_PAYMENT", new Parameter[]{new StringParameter("SELECTION", ps.getName()), new IntParameter("TRIALS", trials),
+				new BooleanParameter("UPDATE", up), new StringParameter("DISTANCE", ps.getDist().name),
+				new IntParameter("EPOCH", epoch), new DoubleParameter("PAR", p)});
+		this.trials = trials;
+		this.update = up;
+		this.select = ps;
+		this.recompute_epoch = epoch;
 	}
 	
 	/**
