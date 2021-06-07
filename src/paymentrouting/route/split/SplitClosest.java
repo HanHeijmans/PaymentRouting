@@ -1,4 +1,4 @@
-package paymentrouting.route;
+package paymentrouting.route.split;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,6 +8,9 @@ import java.util.Vector;
 
 import gtna.graph.Graph;
 import gtna.graph.Node;
+import paymentrouting.route.DistanceFunction;
+import paymentrouting.route.PathSelection;
+import paymentrouting.route.RoutePayment;
 import treeembedding.credit.CreditLinks;
 
 /**
@@ -35,7 +38,7 @@ public class SplitClosest extends PathSelection {
 
 	@Override
 	public double[] getNextsVals(Graph g, int cur, int dst, int pre, boolean[] excluded, RoutePayment rp, double curVal,
-			Random rand, int reality) {
+								 Random rand, int reality) {
 		Node[] nodes = g.getNodes();
 		int[] out = nodes[cur].getOutgoingEdges();
 		//sum all capacities available for forwarding 

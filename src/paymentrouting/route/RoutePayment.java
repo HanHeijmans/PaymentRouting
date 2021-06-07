@@ -32,7 +32,7 @@ public class RoutePayment extends Metric{
 	protected Random rand; //random seed 
 	protected boolean update; //are balances updated after payment or returned to original  
 	protected Transaction[] transactions; //list of transactions 
-	protected boolean log = false; //give detailed output in form of prints 
+	protected boolean log = false; //give detailed output in form of prints
 	protected PathSelection select; //splitting method  
 	protected CreditLinks edgeweights; //the balances of the channels
 	protected int tInterval = 1000; //default length of an epoch (if you want to see success over time: averages taken for this number of transactions)
@@ -162,10 +162,12 @@ public class RoutePayment extends Metric{
 		
 		//iterate over transactions
 		for (int i = 0; i < this.transactions.length; i++) {
+			if(i % 100000 == 0)
+			System.out.println("TRANSN: " + i);
 			Transaction tr = this.transactions[i];
 			int src = tr.getSrc();
 			int dst = tr.getDst();
-			if (log) System.out.println("Src-dst " + src + "," + dst); 
+			if (log) System.out.println("Src-dst " + src + "," + dst + " value: " + tr.getVal());
 			double val = tr.getVal();
 			boolean s = true; //successful, reset when failure encountered 
 	    	int h = 0; //hops

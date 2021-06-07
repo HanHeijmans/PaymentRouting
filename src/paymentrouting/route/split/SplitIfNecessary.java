@@ -1,4 +1,4 @@
-package paymentrouting.route;
+package paymentrouting.route.split;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,6 +8,10 @@ import java.util.Vector;
 
 import gtna.graph.Graph;
 import gtna.graph.Node;
+import paymentrouting.route.ClosestNeighbor;
+import paymentrouting.route.DistanceFunction;
+import paymentrouting.route.PathSelection;
+import paymentrouting.route.RoutePayment;
 
 /**
  * only split if necessary
@@ -31,9 +35,9 @@ public class SplitIfNecessary extends PathSelection {
 
 
 	@Override
-	public double[] getNextsVals(Graph g, int cur, int dst, int pre, boolean[] excluded, 
-			RoutePayment rp, double curVal,
-			Random rand, int reality) {
+	public double[] getNextsVals(Graph g, int cur, int dst, int pre, boolean[] excluded,
+								 RoutePayment rp, double curVal,
+								 Random rand, int reality) {
 		//check if not splitting work (using ClosestNeighbor), otherwise go to splitting  
 		double[] noSplit = this.cn.getNextsVals(g, cur, dst, pre, excluded, rp, curVal, rand, reality);
 		if (noSplit != null) {

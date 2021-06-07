@@ -4,29 +4,21 @@ import gtna.data.Series;
 import gtna.metrics.Metric;
 import gtna.networks.Network;
 import gtna.networks.model.BarabasiAlbert;
-import gtna.networks.model.ErdosRenyi;
 import gtna.networks.util.ReadableFile;
 import gtna.transformation.Transformation;
-import gtna.transformation.partition.LargestWeaklyConnectedComponent;
 import gtna.util.Config;
 import paymentrouting.datasets.InitCapacities;
 import paymentrouting.datasets.InitCapacities.BalDist;
 import paymentrouting.datasets.Transactions;
 import paymentrouting.datasets.Transactions.TransDist;
-import paymentrouting.route.attack.ColludingDropSplits;
-import paymentrouting.route.attack.NonColludingDropSplits;
-import paymentrouting.route.fee.AbsoluteDiffFee;
-import paymentrouting.route.fee.FeeComputation;
-import paymentrouting.route.fee.LightningFees;
-import paymentrouting.route.fee.RatioDiffFee;
-import paymentrouting.route.fee.RoutePaymentFees;
+import paymentrouting.route.split.*;
 
 public class PaymentTests {
 
 	public static void main(String[] args) {
 		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+false);//run even if results already exist 
-		runSimpleTestSynthetic(); 
-	
+//		runSimpleTestSynthetic(Integer.parseInt(args[0]));
+		runSplitCloseTiesSynth();
 	}
 	
 	/**
@@ -42,26 +34,77 @@ public class PaymentTests {
 		boolean up = false; //no dymanic updates of balances  
         Metric[] m = new Metric[] {new RoutePayment(new ClosestNeighbor(hop),trials,up), //no splitting, HopDistance 
 				                   new RoutePayment(new ClosestNeighbor(speedyMulti),trials,up), //no splitting, Interdimensional SpeedyMurmurs 
-				                   new RoutePayment(new SplitIfNecessary(hop),trials,up), //split if necessary, HopDistance 
+				                   new RoutePayment(new SplitIfNecessary(hop),trials,up), //split if necessary, HopDistance
 				                   new RoutePayment(new SplitIfNecessary(speedyMulti),trials,up), //split if necessary, Interdimensional SpeedyMurmurs
-				                   new RoutePayment(new SplitClosest(hop),trials,up), //split by dist, HopDistance 
+				                   new RoutePayment(new SplitClosest(hop),trials,up), //split by dist, HopDistance
 				                   new RoutePayment(new SplitClosest(speedyMulti),trials,up), //split by dist, Interdimensional SpeedyMurmurs
-				                   new RoutePayment(new RandomSplit(hop),trials,up), //random splitting, HopDistance 
+				                   new RoutePayment(new RandomSplit(hop),trials,up), //random splitting, HopDistance
 				                   new RoutePayment(new RandomSplit(speedyMulti),trials,up) //random splitting, Interdimensional SpeedyMurmurs
                                    }; 
-		Series.generate(net, m, 3); 
+		for(int i = 1; i < 10; i++) {
+			Series.generate(net,m,i, i);
+		}
+	}
+
+	public static void runSplitCloseTiesTest() {
+		//read test files
+		Network net = new ReadableFile("SPLIT_CLOSE_TIES", "SPLIT_CLOSE_TIES", "data/simple/split_close_ties_graph.txt", null);
+		//generate distance functions
+		DistanceFunction hop = new HopDistance();
+		DistanceFunction speedyMulti = new SpeedyMurmursMulti(2); //Interdimensional SpeedyMurmurs with two trees
+		int trials = 1; // only one attempt
+		boolean up = true; //no dymanic updates of balances
+		Metric[] m = new Metric[] {new RoutePayment(new SplitCloseTies(hop),trials,up),
+				new RoutePayment(new SplitCloseTies(speedyMulti), trials, up),
+				new RoutePayment(new SplitClosest(hop), trials, up),
+				new RoutePayment(new SplitClosest(speedyMulti), trials, up),
+				new RoutePayment(new SplitCloseTiesLookahead(hop), trials, up),
+				new RoutePayment(new SplitCloseTiesLookahead(speedyMulti), trials, up)
+		};
+		Series.generate(net, m, 20);
+	}
+
+	public static void runSplitCloseTiesSynth() {
+		Config.overwrite("SERIES_GRAPH_WRITE", ""+true);
+		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+true);
+		//generate transformations to add i) capacities and ii) transactions
+		Transformation[] trans = new Transformation[] { new InitCapacities(200, -1, BalDist.EXP),
+				//exponentially distributed capacities with average value 200 (middle value is variance, which is not relevant for exponential)
+				new Transactions(100, -1, TransDist.EXP, false, 1000, true, false)
+				// 15 transactions with expontially distributed values with average 20 (again -1 is variance, not needed for exp),
+				//no cutoff, no concrete timestamp, no restriction to transactions guaranteed to be successful
+		};
+		//generate distance functions
+		DistanceFunction hop = new HopDistance();
+		DistanceFunction speedyMulti = new SpeedyMurmursMulti(5); //Interdimensional SpeedyMurmurs with two trees
+
+		Network net = new BarabasiAlbert(30, 3, trans);//scale-free barabasi-albert graph with 30 nodes, each new node forming three links to existing nodes
+
+		int trials = 1; // only one attempt
+		boolean up = true; //no dymanic updates of balances
+		Metric[] m = new Metric[] {new RoutePayment(new SplitCloseTies(hop),trials,up),
+				new RoutePayment(new SplitCloseTies(speedyMulti), trials, up),
+				new RoutePayment(new SplitClosest(hop), trials, up),
+				new RoutePayment(new SplitClosest(speedyMulti), trials, up),
+				new RoutePayment(new SplitCloseTiesLookahead(hop), trials, up),
+				new RoutePayment(new SplitCloseTiesLookahead(speedyMulti), trials, up),
+				new RoutePayment(new SplitCloseTiesLookaheadCapacity(hop), trials, up),
+				new RoutePayment(new SplitCloseTiesLookaheadCapacity(speedyMulti), trials, up)
+		};
+		Series.generate(net, m, 4);
 	}
 	
-	public static void runSimpleTestSynthetic() {
+	public static void runSimpleTestSynthetic(int i) {
 		Config.overwrite("SERIES_GRAPH_WRITE", ""+true);
+		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+true);
         //generate transformations to add i) capacities and ii) transactions 
 		Transformation[] trans = new Transformation[] { new InitCapacities(200, -1, BalDist.EXP), 
 				//exponentially distributed capacities with average value 200 (middle value is variance, which is not relevant for exponential)
-				new Transactions(20, -1, TransDist.EXP, false, 15, true, false) 
+				new Transactions(20, -1, TransDist.EXP, false, 10000, true, false)
 				// 15 transactions with expontially distributed values with average 20 (again -1 is variance, not needed for exp), 
 				//no cutoff, no concrete timestamp, no restriction to transactions guaranteed to be successful 
 		        };
-		Network net = new BarabasiAlbert(30, 3, trans);//scale-free barabasi-albert graph with 30 nodes, each new node forming three links to existing nodes
+		Network net = new BarabasiAlbert(6000, 3, trans);//scale-free barabasi-albert graph with 30 nodes, each new node forming three links to existing nodes
 		// generate distance functions
 		DistanceFunction hop = new HopDistance();
 		DistanceFunction speedyMulti = new SpeedyMurmursMulti(2); // Interdimensional SpeedyMurmurs with two trees
@@ -80,8 +123,7 @@ public class PaymentTests {
 				new RoutePayment(new RandomSplit(speedyMulti), trials, up) // random splitting, Interdimensional
 																			// SpeedyMurmurs
 		};
-		//run 
-		Series.generate(net, m, 10);
+		Series.generate(net, m, i, i);
    }
 
 	

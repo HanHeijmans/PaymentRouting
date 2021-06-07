@@ -1,4 +1,4 @@
-package paymentrouting.route;
+package paymentrouting.route.split;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,6 +8,8 @@ import java.util.Vector;
 
 import gtna.graph.Graph;
 import gtna.graph.Node;
+import paymentrouting.route.DistanceFunction;
+import paymentrouting.route.RoutePayment;
 
 /**
  * split if too many funds are used by payment 
@@ -28,9 +30,9 @@ public class SplitIfTooHigh extends SplitClosest {
 	}
 	
 	@Override
-	public double[] getNextsVals(Graph g, int cur, int dst, int pre, boolean[] excluded, 
-			RoutePayment rp, double curVal,
-			Random rand, int reality) {
+	public double[] getNextsVals(Graph g, int cur, int dst, int pre, boolean[] excluded,
+                                 RoutePayment rp, double curVal,
+                                 Random rand, int reality) {
 		this.cur_reserve = this.reserve; 
 		Node[] nodes = g.getNodes();
 		int[] out = nodes[cur].getOutgoingEdges();

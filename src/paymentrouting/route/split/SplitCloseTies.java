@@ -1,4 +1,4 @@
-package paymentrouting.route;
+package paymentrouting.route.split;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,14 +8,24 @@ import java.util.Vector;
 
 import gtna.graph.Graph;
 import gtna.graph.Node;
+import paymentrouting.route.DistanceFunction;
+import paymentrouting.route.PathSelection;
+import paymentrouting.route.RoutePayment;
 import treeembedding.credit.CreditLinks;
 
-public class SplitCloseP extends PathSelection {
-    double P;
+/**
+ * split using the nodes closest to destination
+ * @author mephisto
+ *
+ */
+public class SplitCloseTies extends PathSelection {
 
-    public SplitCloseP(DistanceFunction df, double P) {
-        super("SPLIT_CLOSE_P", df);
-        this.P = P;
+    public SplitCloseTies(DistanceFunction df) {
+        super("SPLIT_CLOSE_TIES", df);
+    }
+
+    public SplitCloseTies(String key, DistanceFunction df) {
+        super(key, df);
     }
 
     @Override
@@ -51,11 +61,6 @@ public class SplitCloseP extends PathSelection {
             //routing failed as combined capacity of neighbors is insufficient
             return null;
         } else {
-            double parameter = this.P;
-            if(curVal / sum > this.P) {
-                parameter = curVal / sum;
-            }
-
             double[] partVal = new double[out.length];
             //write and sort distances
             Iterator<Double> it = dists.keySet().iterator();
@@ -72,9 +77,17 @@ public class SplitCloseP extends PathSelection {
                 //start with node(s) at least distance
                 Vector<Integer> vec = dists.get(vals[i]);
                 while (vec.size() > 0) {
-                    int node = vec.remove(rand.nextInt(vec.size()));
-                    //forward all that still needs forwarding via this node if possible, otherwise: forward partial value that can go via channel
-                    double valNode = Math.min(rp.computePotential(cur, out[node]) * parameter, curVal-all);
+                    int node = vec.get(0);
+                    int index = 0;
+                    for(int j = 0; j < vec.size(); j++) {
+                        if(rp.computePotential(cur, out[vec.get(j)]) > rp.computePotential(cur, out[node])) {
+                            node = vec.get(j);
+                            index = j;
+                        }
+                    }
+                    vec.remove(index);
+                    //forward all that still needs forwarding via this node if possible, otherwise: forward maximal value that can go via channel
+                    double valNode = Math.min(rp.computePotential(cur, out[node]), curVal-all);
                     all = all + valNode;
                     partVal[node] = valNode;
                     if (all >= curVal) {

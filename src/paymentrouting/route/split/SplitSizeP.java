@@ -1,11 +1,15 @@
-package paymentrouting.route;
+package paymentrouting.route.split;
 
 import gtna.graph.Graph;
 import gtna.graph.Node;
+import paymentrouting.route.ClosestNeighbor;
+import paymentrouting.route.DistanceFunction;
+import paymentrouting.route.PathSelection;
+import paymentrouting.route.RoutePayment;
 
 import java.util.*;
 
-public class SplitSizeP extends PathSelection{
+public class SplitSizeP extends PathSelection {
     double P;
     ClosestNeighbor cn;
 

@@ -18,6 +18,7 @@ import paymentrouting.datasets.Transactions;
 import paymentrouting.datasets.Transactions.TransDist;
 import paymentrouting.route.attack.ColludingDropSplits;
 import paymentrouting.route.attack.NonColludingDropSplits;
+import paymentrouting.route.split.*;
 
 public class Evaluation {
 	/**
@@ -26,7 +27,8 @@ public class Evaluation {
 	 */
 
 	public static void main(String[] args) {
-		attackEval();  
+//		dynamicEval(Integer.parseInt(args[0]));
+		dynamicEvalTies(Integer.parseInt(args[0]));
 	}
 	
 	/**
@@ -68,7 +70,7 @@ public class Evaluation {
 		int index = 0; 
 		for (int i = 0; i < 11; i++){
 			m[index++] =  new RoutePayment(new ColludingDropSplits(new SplitClosest(speedyMulti[0]), 0.1*i,maxdelay1),trials, up);
-			m[index++] =  new RoutePayment(new ColludingDropSplits(new SplitIfNecessary(speedyMulti[0]), 0.1*i,maxdelay1),trials, up);	
+			m[index++] =  new RoutePayment(new ColludingDropSplits(new SplitIfNecessary(speedyMulti[0]), 0.1*i,maxdelay1),trials, up);
 			m[index++] =  new RoutePayment(new ColludingDropSplits(new SplitClosest(speedyMulti[0]), 0.1*i,maxdelay2),trials, up);
 			m[index++] =  new RoutePayment(new ColludingDropSplits(new SplitIfNecessary(speedyMulti[0]), 0.1*i,maxdelay2),trials, up);
 			m[index++] =  new RoutePayment(new NonColludingDropSplits(new SplitClosest(speedyMulti[0]), 0.1*i,maxdelay1),trials, up);
@@ -79,33 +81,88 @@ public class Evaluation {
 		m[index++] = new TransactionStats();
 		Series.generate(net, m, runs);
 	}
-	
-	/**
-	 * evaluation with dynamic adjustments of weights (general setup), Figure 8 in paper  
-	 */
-	public static void dynamicEval() {
-		//storage setup
-		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+true);
+
+
+	public static void dynamicEvalTies(int j) {
+		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+false);
 		Config.overwrite("SERIES_GRAPH_WRITE", ""+true);
-		Config.overwrite("MAIN_DATA_FOLDER", "./data/dyn-lightning/");
-		//network parameters 
-		int init = 200; 
-		int[] trval = {10,100};
+		Config.overwrite("MAIN_DATA_FOLDER", "./data/dyn-lightning-split-ties/");
+		//network parameters
+		int init = 200;
+		int[] trval = {100};
 		int trs = 1000000;
 		TransDist td = TransDist.EXP;
 		BalDist bd = BalDist.EXP;
 		String file  = "lightning/lngraph_2020_03_01__04_00.graph";
 		//routing parameters: trees for speedymurmurs
-		int[] trees = {1,3,5}; 
+		int[] trees = {5};
+
+		//execute all experiments
+		int runs = 20;
+		for (int i = 0; i < trval.length; i++) {
+			dynamicTies(init, trval[i], j,
+					trs, trees, td, bd, file);
+		}
+	}
+
+	public static void dynamicTies(int initCap, int trval, int runs,
+								   int trs, int[] trees, TransDist td, BalDist bd, String file) {
+		Transformation[] trans = new Transformation[] {
+				new InitCapacities(initCap,0.05*initCap, bd),
+				new Transactions(trval, 0.1*trval, td, false, trs, false, false)};
+		Network net = new ReadableFile("LIGHTNING", "LIGHTNING", file, trans);
+		//instantiate routing
+		DistanceFunction hop = new HopDistance();
+		DistanceFunction[] speedyMulti = new SpeedyMurmursMulti[trees.length];
+		for (int i = 0; i < speedyMulti.length; i++) {
+			speedyMulti[i] = new SpeedyMurmursMulti(trees[i]);
+		}
+		int trials = 1;
+		boolean up = true;
+		Metric[] m = new Metric[1+1*trees.length + 1];
+		int index = 0;
+		//HopDistance routing for three splitting protocols
+//		m[index++] =  new RoutePayment(new SplitClosest(hop),trials, up);
+//		m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(hop), trials, up);
+//		m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(hop),trials, up);
+		m[index++] =  new RoutePayment(new SplitCloseTies(hop),trials, up);
+		//Interdimensional SpeedyMurmurs with varying number of trees, routing for three splitting protocols
+		for (int i = 0; i < trees.length; i++){
+//			m[index++] =  new RoutePayment(new SplitClosest(speedyMulti[i]),trials, up);
+//			m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(speedyMulti[i]), trials, up);
+//			m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(speedyMulti[i]),trials, up);
+			m[index++] =  new RoutePayment(new SplitCloseTies(speedyMulti[i]),trials, up);
+		}
+		//compute stats about transaction set
+		m[index++] = new TransactionStats();
+		Series.generate(net, m, runs, runs);
+	}
+
+	/**
+	 * evaluation with dynamic adjustments of weights (general setup), Figure 8 in paper  
+	 */
+	public static void dynamicEval(int round) {
+		//storage setup
+		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+true);
+		Config.overwrite("SERIES_GRAPH_WRITE", ""+true);
+		Config.overwrite("MAIN_DATA_FOLDER", "./data/dyn-lightning-test/");
+		//network parameters 
+		int init = 200; 
+		int[] trval = {100};
+		int trs = 1000000;
+		TransDist td = TransDist.EXP;
+		BalDist bd = BalDist.EXP;
+		String file  = "lightning/lngraph_2020_03_01__04_00.graph";
+		//routing parameters: trees for speedymurmurs
+		int[] trees = {5};
 		
 		//execute all experiments 
 		int runs = 20;
 		for (int i = 0; i < trval.length; i++) {
-			dynamic(init, trval[i], 20, 
+			dynamic(init, trval[i], round,
 					trs, trees, td, bd, file); 
 		}
 	}
-	
 	/**
 	 * dynamic experiments for one network
 	 * @param initCap: average capacity
@@ -131,8 +188,9 @@ public class Evaluation {
 			speedyMulti[i] = new SpeedyMurmursMulti(trees[i]);
 		}
 		int trials = 1;
-		boolean up = true; 
-		Metric[] m = new Metric[3+3*trees.length+1]; 
+		boolean up = true;
+		double[] p = {0.5, 0.6, 0.7, 0.8, 0.9};
+		Metric[] m = new Metric[3+3*trees.length + 2 * p.length * trees.length +1];
 		int index = 0; 
 		//HopDistance routing for three splitting protocols 
 		m[index++] =  new RoutePayment(new ClosestNeighbor(hop),trials, up);
@@ -143,10 +201,16 @@ public class Evaluation {
 			m[index++] =  new RoutePayment(new ClosestNeighbor(speedyMulti[i]),trials, up);
 			m[index++] =  new RoutePayment(new SplitIfNecessary(speedyMulti[i]), trials, up);	
 			m[index++] =  new RoutePayment(new SplitClosest(speedyMulti[i]),trials, up);
+			for(int j = 0; j < p.length; j++) {
+				double P = p[j];
+				m[index++] =  new RoutePayment(new SplitCloseP(speedyMulti[i], P),trials, up, P);
+				m[index++] =  new RoutePayment(new SplitSizeP(speedyMulti[i], P),trials, up, P);
+			}
+
 		}	
 		//compute stats about transaction set 
 		m[index++] = new TransactionStats();
-		Series.generate(net, m, runs);
+		Series.generate(net, m, runs, runs);
 	}	
 	
 	/**
@@ -399,7 +463,7 @@ public class Evaluation {
 		m[index++] =  new RoutePayment(new ClosestNeighbor(hop),trials, up);
 		m[index++] =  new RoutePayment(new SplitIfNecessary(hop), trials, up);	
 		m[index++] =  new RoutePayment(new SplitClosest(hop),trials, up); 
-		m[index++] =  new RoutePayment(new RandomSplit(hop),trials, up); 
+		m[index++] =  new RoutePayment(new RandomSplit(hop),trials, up);
 		for (int i = 0; i < trees.length; i++){
 			m[index++] =  new RoutePayment(new ClosestNeighbor(speedyMulti[i]),trials, up);
 			m[index++] =  new RoutePayment(new SplitIfNecessary(speedyMulti[i]), trials, up);	
