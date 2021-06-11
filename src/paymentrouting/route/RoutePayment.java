@@ -162,7 +162,7 @@ public class RoutePayment extends Metric{
 		
 		//iterate over transactions
 		for (int i = 0; i < this.transactions.length; i++) {
-			if(i % 100000 == 0)
+			if(i % 10000 == 0)
 			System.out.println("TRANSN: " + i);
 			Transaction tr = this.transactions[i];
 			int src = tr.getSrc();

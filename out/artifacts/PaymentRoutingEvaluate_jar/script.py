@@ -3,24 +3,26 @@ import subprocess
 import time
 
 prc = []
+threads = 20
 
-for n in range(11):
-    prc.append(subprocess.Popen(['java', '-jar', 'PaymentRouting.jar', str(n)]))
+for n in range(threads):
+    prc.append(subprocess.Popen(['java', '-jar', 'PaymentRouting.jar', str(n), 'true']))
 
-count = len(prc)
-runs = 11
-while True:
-    a = False
-    for n, p in enumerate(prc):
-        if p.poll() != 0:
-            a = True
-        elif count < runs:
-            prc[n] = subprocess.Popen(['java', '-jar', 'PaymentRouting.jar', str(count)])
-            count += 1
-    if not a and count >= runs:
-        print('Done')
-        break;
-    time.sleep(1)
+# count = threads
+# runs = 20
+# while True:
+#     a = False
+#     for n, p in enumerate(prc):
+#         if p.poll() != 0 or p.poll() != -1:
+#             a = True
+#         elif count < runs:
+#             prc[n] = subprocess.Popen(['java', '-jar', 'PaymentRouting.jar', str(count), 'true'])
+#             count += 1
+#     if not a and count >= runs:
+#         subprocess.Popen(['java', '-jar', 'PaymentRouting.jar', str(count), 'true'])
+#         print('Done')
+#         break;
+#     time.sleep(1)
 
 
 

@@ -8,6 +8,7 @@ import gtna.networks.Network;
 import gtna.networks.model.BarabasiAlbert;
 import gtna.networks.model.ErdosRenyi;
 import gtna.networks.util.ReadableFile;
+import gtna.routing.Route;
 import gtna.transformation.Transformation;
 import gtna.transformation.partition.LargestWeaklyConnectedComponent;
 import gtna.util.Config;
@@ -28,7 +29,8 @@ public class Evaluation {
 
 	public static void main(String[] args) {
 //		dynamicEval(Integer.parseInt(args[0]));
-		dynamicEvalTies(Integer.parseInt(args[0]));
+		dynamicEvalTies(Integer.parseInt(args[0]), Boolean.getBoolean(args[1]));
+//		dynamicEvalTies(Integer.parseInt("0"), Boolean.getBoolean("true"));
 	}
 	
 	/**
@@ -83,8 +85,8 @@ public class Evaluation {
 	}
 
 
-	public static void dynamicEvalTies(int j) {
-		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+false);
+	public static void dynamicEvalTies(int j, boolean skip) {
+		Config.overwrite("SKIP_EXISTING_DATA_FOLDERS", ""+true);
 		Config.overwrite("SERIES_GRAPH_WRITE", ""+true);
 		Config.overwrite("MAIN_DATA_FOLDER", "./data/dyn-lightning-split-ties/");
 		//network parameters
@@ -119,19 +121,27 @@ public class Evaluation {
 		}
 		int trials = 1;
 		boolean up = true;
-		Metric[] m = new Metric[1+1*trees.length + 1];
+		Metric[] m = new Metric[3+3*trees.length + 1];
 		int index = 0;
 		//HopDistance routing for three splitting protocols
-//		m[index++] =  new RoutePayment(new SplitClosest(hop),trials, up);
-//		m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(hop), trials, up);
-//		m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(hop),trials, up);
-		m[index++] =  new RoutePayment(new SplitCloseTies(hop),trials, up);
+//		m[index++] = new RoutePayment(new SplitBalancing(hop), trials, up);
+//		m[index++] = new RoutePayment(new SplitWaterfall(hop), trials, up);
+//		m[index++] = new RoutePayment(new SplitCloseTiesBalance(hop), trials, up);
+//		m[index++] = new RoutePayment(new SplitLookahead(hop), trials, up);
+		m[index++] =  new RoutePayment(new SplitClosest(hop),trials, up);
+//		m[index++] =  new RoutePayment(new SplitCloseTies(hop),trials, up);
+		m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(hop), trials, up);
+		m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(hop),trials, up);
 		//Interdimensional SpeedyMurmurs with varying number of trees, routing for three splitting protocols
 		for (int i = 0; i < trees.length; i++){
-//			m[index++] =  new RoutePayment(new SplitClosest(speedyMulti[i]),trials, up);
-//			m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(speedyMulti[i]), trials, up);
-//			m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(speedyMulti[i]),trials, up);
-			m[index++] =  new RoutePayment(new SplitCloseTies(speedyMulti[i]),trials, up);
+//			m[index++] = new RoutePayment(new SplitBalancing(speedyMulti[i]), trials, up);
+//			m[index++] = new RoutePayment(new SplitWaterfall(speedyMulti[i]), trials, up);
+//			m[index++] = new RoutePayment(new SplitCloseTiesBalance(speedyMulti[i]), trials, up);
+//			m[index++] = new RoutePayment(new SplitLookahead(speedyMulti[i]), trials, up);
+			m[index++] =  new RoutePayment(new SplitClosest(speedyMulti[i]),trials, up);
+//			m[index++] =  new RoutePayment(new SplitCloseTies(speedyMulti[i]),trials, up);
+			m[index++] =  new RoutePayment(new SplitCloseTiesLookaheadCapacity(speedyMulti[i]), trials, up);
+			m[index++] =  new RoutePayment(new SplitCloseTiesLookahead(speedyMulti[i]),trials, up);
 		}
 		//compute stats about transaction set
 		m[index++] = new TransactionStats();
