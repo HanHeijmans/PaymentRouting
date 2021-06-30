@@ -1,16 +1,12 @@
 
 package paymentrouting.route;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Vector;
 
 import gtna.data.Single;
 import gtna.graph.Edge;
+import gtna.graph.Edges;
 import gtna.graph.Graph;
 import gtna.graph.Node;
 import gtna.io.DataWriter;
@@ -53,6 +49,8 @@ public class RoutePayment extends Metric{
 	protected double successFirst; //fraction of payments successful in first try
 	protected double[] succTime; //fraction of successful payments over time 
 
+
+	protected double[] balanceTime;
 
 	public RoutePayment(PathSelection ps, int trials, boolean up, double p) {
 		this(ps,trials,up,Integer.MAX_VALUE, p);
@@ -109,7 +107,6 @@ public class RoutePayment extends Metric{
 	 * @param ps
 	 * @param trials
 	 * @param up
-	 * @param epoch
 	 * @param params
 	 */
 	public RoutePayment(PathSelection ps, int trials, boolean up, Parameter[] params) {
@@ -159,11 +156,25 @@ public class RoutePayment extends Metric{
 			this.succTime = new double[len+1];
 		}
 		int slot = 0;
-		
+
+		this.balanceTime = new double[100];
 		//iterate over transactions
 		for (int i = 0; i < this.transactions.length; i++) {
-			if(i % 10000 == 0)
-			System.out.println("TRANSN: " + i);
+			if(i % 10000 == 0) {
+				System.out.println("TRANSN: " + i);
+				double totalBalance = 0;
+				double totalEdges = 0;
+				ArrayList<Edge> edges = g.getEdges().getEdges();
+				for(Edge e : edges) {
+					double cap = getTotalCapacity(e.getSrc(), e.getDst());
+					double balance = computePotential(e.getSrc(), e.getDst());
+					double imbalance = Math.abs((balance / cap) - 0.5) / 0.5;
+					totalBalance += imbalance;
+					totalEdges++;
+				}
+				this.balanceTime[i / 10000] = totalBalance / totalEdges;
+				System.out.println("Balance " + this.balanceTime[i / 10000]);
+			}
 			Transaction tr = this.transactions[i];
 			int src = tr.getSrc();
 			int dst = tr.getDst();
@@ -187,17 +198,31 @@ public class RoutePayment extends Metric{
 		    	
 		    	HashMap<Edge, Double> originalWeight = new HashMap<Edge,Double>(); //updated weights
 		
-		       //while current set of nodes is not empty 
+		       //while current set of nodes is not empty
+				int cur2 = -1;
+				int count2 = 0;
 		    	while (!pps.isEmpty() && h < maxhops) {
 		    		if (log) {
 		    			System.out.println("Hop " + h + " with " + pps.size() + " links ");
 		    		}
+
 		    		Vector<PartialPath> next = new  Vector<PartialPath>();
 		            //iterate over set of current set of nodes 
 		            for (int j = 0; j < pps.size(); j++) {
+
 		            	PartialPath pp = pps.get(j);
 		            	int cur = pp.node;
-		            	//exclude nodes already on the path 
+						if(cur2 == cur) {
+							count2++;
+							if(count2 > 10) {
+								System.out.println("LoopFound");
+							}
+						} else {
+							count2 = 0;
+						}
+						cur2 = cur;
+
+						//exclude nodes already on the path
 		            	int pre = -1;
 		            	Vector<Integer> past = pp.pre;
 		            	if (past.size() > 0) {
@@ -206,8 +231,7 @@ public class RoutePayment extends Metric{
 		            	for (int l = 0; l < past.size(); l++) {
 		            		excluded[past.get(l)] = true;
 		            	}
-		            	
-		            	if (log) System.out.println("Routing at cur " + cur); 
+		            	if (log) System.out.println("Routing at cur " + cur);
 		                //getNextVals -> distribution of payment value over neighbors
 		                double[] partVals = this.select.getNextsVals(g, cur, dst, 
 		                		pre, excluded, this, pp.val, rand, pp.reality); 
@@ -215,7 +239,7 @@ public class RoutePayment extends Metric{
 		                for (int l = 0; l < past.size(); l++) {
 		            		excluded[past.get(l)] = false;
 		            	}
-		               
+
 		                //add neighbors that are not the dest to new set of current nodes 
 		                if (partVals != null) {
 		                	past.add(cur);
@@ -346,6 +370,7 @@ public class RoutePayment extends Metric{
 		succ &= DataWriter.writeWithIndex(this.trysDistribution.getDistribution(),
 				this.key+"_TRYS", folder);
 		succ &= DataWriter.writeWithIndex(this.succTime, this.key+"_SUCCESS_TEMPORAL", folder);
+		succ &= DataWriter.writeWithIndex(this.balanceTime, this.key+"_BALANCE", folder);
 		
 		return succ;
 	}
@@ -359,6 +384,7 @@ public class RoutePayment extends Metric{
 		
 		Single s1 = new Single(this.key + "_SUCCESS_DIRECT", this.successFirst);
 		Single s = new Single(this.key + "_SUCCESS", this.success);
+
 
 		return new Single[]{m_av, m_av_succ, h_av, h_av_succ, s1, s};
 	}

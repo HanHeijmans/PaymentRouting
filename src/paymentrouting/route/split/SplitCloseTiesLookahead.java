@@ -95,6 +95,7 @@ public class SplitCloseTiesLookahead extends PathSelection {
                     break;
                 }
             }
+
             return partVal;
         }
     }

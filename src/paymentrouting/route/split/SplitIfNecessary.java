@@ -20,11 +20,11 @@ import paymentrouting.route.RoutePayment;
  *
  */
 public class SplitIfNecessary extends PathSelection {
-	ClosestNeighbor cn;
+	ClosestNeighborV2 cn;
 
 	public SplitIfNecessary(DistanceFunction df) {
 		super("SPLIT_IFNECESSARY", df);
-		this.cn = new ClosestNeighbor(df); //ClosestNeighbor is used when not splitting 
+		this.cn = new ClosestNeighborV2(df); //ClosestNeighbor is used when not splitting
 	}
 
 	@Override

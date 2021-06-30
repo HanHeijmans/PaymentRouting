@@ -13,11 +13,6 @@ import paymentrouting.route.PathSelection;
 import paymentrouting.route.RoutePayment;
 import treeembedding.credit.CreditLinks;
 
-/**
- * split using the nodes closest to destination
- * @author mephisto
- *
- */
 public class SplitCloseTies extends PathSelection {
 
     public SplitCloseTies(DistanceFunction df) {

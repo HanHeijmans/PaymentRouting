@@ -13,12 +13,6 @@ import paymentrouting.route.DistanceFunction;
 import paymentrouting.route.PathSelection;
 import paymentrouting.route.RoutePayment;
 
-/**
- * only split if necessary
- * if so: split as few times as possible by using neighbors with highest balances
- * @author mephisto
- *
- */
 public class SplitWaterfall extends PathSelection {
     ClosestNeighbor cn;
 
